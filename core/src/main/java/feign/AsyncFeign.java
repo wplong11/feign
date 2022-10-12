@@ -189,7 +189,15 @@ public final class AsyncFeign<C> {
     public AsyncFeign<C> build() {
       super.enrich();
 
-      AsyncResponseHandler responseHandler =
+      ResponseHandler responseHandler = new ResponseHandler(
+          logLevel,
+          logger,
+          decoder,
+          errorDecoder,
+          dismiss404,
+          closeAfterDecode,
+          responseInterceptor);
+      AsyncResponseHandler asyncResponseHandler =
           (AsyncResponseHandler) Capability.enrich(
               new AsyncResponseHandler(
                   logLevel,
@@ -202,10 +210,17 @@ public final class AsyncFeign<C> {
               capabilities);
 
       final MethodHandler.Factory<C> methodHandlerFactory =
-          new AsynchronousMethodHandler.Factory<>(
-              client, retryer, requestInterceptors,
-              responseHandler, logger, logLevel,
-              propagationPolicy, methodInfoResolver);
+          new MethodHandlerFactory<>(
+              new Client.AsyncAdapter<>(client),
+              client,
+              retryer,
+              requestInterceptors,
+              responseHandler,
+              asyncResponseHandler,
+              logger,
+              logLevel,
+              propagationPolicy,
+              methodInfoResolver);
       final ParseHandlersByName<C> handlersByName =
           new ParseHandlersByName<>(contract, options, encoder,
               decoder, queryMapEncoder,

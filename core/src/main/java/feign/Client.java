@@ -34,7 +34,9 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -289,6 +291,22 @@ public interface Client {
       byte[] bytes = token.getBytes(StandardCharsets.ISO_8859_1);
       String encoded = Base64.getEncoder().encodeToString(bytes);
       return "Basic " + encoded;
+    }
+  }
+
+  @Experimental
+  class AsyncAdapter<C> implements Client {
+    private final AsyncClient<C> asyncClient;
+
+    public AsyncAdapter(AsyncClient<C> asyncClient) {
+      this.asyncClient = asyncClient;
+    }
+
+    @Override
+    public Response execute(Request request, Options options) throws IOException {
+      final CompletableFuture<Response> response = this.asyncClient.execute(
+          request, options, Optional.empty());
+      return response.join();
     }
   }
 }

@@ -15,8 +15,6 @@ package feign;
 
 import feign.InvocationHandlerFactory.MethodHandler;
 import feign.Request.Options;
-import feign.codec.Decoder;
-import feign.codec.ErrorDecoder;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
@@ -46,7 +44,7 @@ final class AsynchronousMethodHandler<C> implements MethodHandler {
   private final MethodInfo methodInfo;
 
 
-  private AsynchronousMethodHandler(Target<?> target, AsyncClient<C> client, Retryer retryer,
+  public AsynchronousMethodHandler(Target<?> target, AsyncClient<C> client, Retryer retryer,
       List<RequestInterceptor> requestInterceptors,
       Logger logger, Logger.Level logLevel, MethodMetadata metadata,
       RequestTemplate.Factory buildTemplateFromArgs, Options options,
@@ -212,45 +210,5 @@ final class AsynchronousMethodHandler<C> implements MethodHandler {
         .map(Options.class::cast)
         .findFirst()
         .orElse(this.options);
-  }
-
-  static class Factory<C> implements MethodHandler.Factory<C> {
-
-    private final AsyncClient<C> client;
-    private final Retryer retryer;
-    private final List<RequestInterceptor> requestInterceptors;
-    private final AsyncResponseHandler responseHandler;
-    private final Logger logger;
-    private final Logger.Level logLevel;
-    private final ExceptionPropagationPolicy propagationPolicy;
-    private final MethodInfoResolver methodInfoResolver;
-
-    Factory(AsyncClient<C> client, Retryer retryer, List<RequestInterceptor> requestInterceptors,
-        AsyncResponseHandler responseHandler,
-        Logger logger, Logger.Level logLevel,
-        ExceptionPropagationPolicy propagationPolicy,
-        MethodInfoResolver methodInfoResolver) {
-      this.client = checkNotNull(client, "client");
-      this.retryer = checkNotNull(retryer, "retryer");
-      this.requestInterceptors = checkNotNull(requestInterceptors, "requestInterceptors");
-      this.responseHandler = responseHandler;
-      this.logger = checkNotNull(logger, "logger");
-      this.logLevel = checkNotNull(logLevel, "logLevel");
-      this.propagationPolicy = propagationPolicy;
-      this.methodInfoResolver = methodInfoResolver;
-    }
-
-    public MethodHandler create(Target<?> target,
-                                MethodMetadata md,
-                                RequestTemplate.Factory buildTemplateFromArgs,
-                                Options options,
-                                Decoder decoder,
-                                ErrorDecoder errorDecoder,
-                                C requestContext) {
-      return new AsynchronousMethodHandler<C>(target, client, retryer, requestInterceptors,
-          logger, logLevel, md, buildTemplateFromArgs, options, responseHandler,
-          propagationPolicy, requestContext,
-          methodInfoResolver.resolve(target.type(), md.method()));
-    }
   }
 }

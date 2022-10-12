@@ -54,7 +54,7 @@ public class BaseBuilderTest {
   public void checkEnrichTouchesAllBuilderFields()
       throws IllegalArgumentException, IllegalAccessException {
     test(Feign.builder().requestInterceptor(template -> {
-    }), 12);
+    }), 14);
   }
 
 }

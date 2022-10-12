@@ -18,8 +18,6 @@ import static feign.FeignException.errorExecuting;
 import static feign.Util.checkNotNull;
 import feign.InvocationHandlerFactory.MethodHandler;
 import feign.Request.Options;
-import feign.codec.Decoder;
-import feign.codec.ErrorDecoder;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -40,12 +38,12 @@ final class SynchronousMethodHandler implements MethodHandler {
   private final ResponseHandler responseHandler;
 
 
-  private SynchronousMethodHandler(Target<?> target, Client client, Retryer retryer,
-      List<RequestInterceptor> requestInterceptors, ResponseInterceptor responseInterceptor,
+  SynchronousMethodHandler(Target<?> target, Client client, Retryer retryer,
+      List<RequestInterceptor> requestInterceptors,
       Logger logger, Logger.Level logLevel, MethodMetadata metadata,
       RequestTemplate.Factory buildTemplateFromArgs, Options options,
-      Decoder decoder, ErrorDecoder errorDecoder, boolean dismiss404,
-      boolean closeAfterDecode, ExceptionPropagationPolicy propagationPolicy) {
+      ResponseHandler responseHandler,
+      ExceptionPropagationPolicy propagationPolicy) {
 
     this.target = checkNotNull(target, "target");
     this.client = checkNotNull(client, "client for %s", target);
@@ -57,9 +55,8 @@ final class SynchronousMethodHandler implements MethodHandler {
     this.metadata = checkNotNull(metadata, "metadata for %s", target);
     this.buildTemplateFromArgs = checkNotNull(buildTemplateFromArgs, "metadata for %s", target);
     this.options = checkNotNull(options, "options for %s", target);
+    this.responseHandler = checkNotNull(responseHandler, "responseHandler for %s", target);
     this.propagationPolicy = propagationPolicy;
-    this.responseHandler = new ResponseHandler(logLevel, logger, decoder, errorDecoder,
-        dismiss404, closeAfterDecode, responseInterceptor);
   }
 
   @Override
@@ -137,45 +134,5 @@ final class SynchronousMethodHandler implements MethodHandler {
         .map(Options.class::cast)
         .findFirst()
         .orElse(this.options);
-  }
-
-  static class Factory implements MethodHandler.Factory<Object> {
-
-    private final Client client;
-    private final Retryer retryer;
-    private final List<RequestInterceptor> requestInterceptors;
-    private final ResponseInterceptor responseInterceptor;
-    private final Logger logger;
-    private final Logger.Level logLevel;
-    private final boolean dismiss404;
-    private final boolean closeAfterDecode;
-    private final ExceptionPropagationPolicy propagationPolicy;
-
-    Factory(Client client, Retryer retryer, List<RequestInterceptor> requestInterceptors,
-        ResponseInterceptor responseInterceptor,
-        Logger logger, Logger.Level logLevel, boolean dismiss404, boolean closeAfterDecode,
-        ExceptionPropagationPolicy propagationPolicy) {
-      this.client = checkNotNull(client, "client");
-      this.retryer = checkNotNull(retryer, "retryer");
-      this.requestInterceptors = checkNotNull(requestInterceptors, "requestInterceptors");
-      this.responseInterceptor = responseInterceptor;
-      this.logger = checkNotNull(logger, "logger");
-      this.logLevel = checkNotNull(logLevel, "logLevel");
-      this.dismiss404 = dismiss404;
-      this.closeAfterDecode = closeAfterDecode;
-      this.propagationPolicy = propagationPolicy;
-    }
-
-    public MethodHandler create(Target<?> target,
-                                MethodMetadata md,
-                                RequestTemplate.Factory buildTemplateFromArgs,
-                                Options options,
-                                Decoder decoder,
-                                ErrorDecoder errorDecoder,
-                                Object requestContext) {
-      return new SynchronousMethodHandler(target, client, retryer, requestInterceptors,
-          responseInterceptor, logger, logLevel, md, buildTemplateFromArgs, options, decoder,
-          errorDecoder, dismiss404, closeAfterDecode, propagationPolicy);
-    }
   }
 }

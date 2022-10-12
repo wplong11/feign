@@ -23,6 +23,7 @@ import feign.InvocationHandlerFactory.MethodHandler;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.concurrent.Executors;
 
 /**
  * Feign's purpose is to ease development against http apis that feign restfulness. <br>
@@ -96,6 +97,8 @@ public abstract class Feign {
   public static class Builder extends BaseBuilder<Builder> {
 
     private Client client = new Client.Default(null, null);
+    private AsyncClient<Object> asyncClient;
+    private MethodInfoResolver methodInfoResolver = MethodInfo::new;
 
     @Override
     public Builder logLevel(Logger.Level logLevel) {
@@ -109,6 +112,20 @@ public abstract class Feign {
 
     public Builder client(Client client) {
       this.client = client;
+
+      return this;
+    }
+
+    @Experimental
+    public Builder asyncClient(AsyncClient<Object> asyncClient) {
+      this.asyncClient = asyncClient;
+
+      return this;
+    }
+
+    @Experimental
+    public Builder methodInfoResolver(MethodInfoResolver methodInfoResolver) {
+      this.methodInfoResolver = methodInfoResolver;
 
       return this;
     }
@@ -200,13 +217,54 @@ public abstract class Feign {
     public Feign build() {
       super.enrich();
 
-      MethodHandler.Factory<Object> synchronousMethodHandlerFactory =
-          new SynchronousMethodHandler.Factory(client, retryer, requestInterceptors,
-              responseInterceptor, logger, logLevel, dismiss404, closeAfterDecode,
-              propagationPolicy);
-      ParseHandlersByName<Object> handlersByName =
+      final AsyncClient<Object> asyncClient;
+      if (this.asyncClient != null) {
+        asyncClient = this.asyncClient;
+      } else {
+        asyncClient = new AsyncClient.Default<>(
+            client,
+            Executors.newCachedThreadPool(
+                r -> {
+                  final Thread result = new Thread(r);
+                  result.setDaemon(true);
+                  return result;
+                })
+        );
+      }
+
+      final ResponseHandler responseHandler = new ResponseHandler(
+              logLevel,
+              logger,
+              decoder,
+              errorDecoder,
+              dismiss404,
+              closeAfterDecode,
+              responseInterceptor);
+      final AsyncResponseHandler asyncResponseHandler = new AsyncResponseHandler(
+              logLevel,
+              logger,
+              decoder,
+              errorDecoder,
+              dismiss404,
+              closeAfterDecode,
+              responseInterceptor);
+
+      final MethodHandler.Factory<Object> methodHandlerFactory =
+              new MethodHandlerFactory<>(
+                      client,
+                      asyncClient,
+                      retryer,
+                      requestInterceptors,
+                      responseHandler,
+                      asyncResponseHandler,
+                      logger,
+                      logLevel,
+                      propagationPolicy,
+                      methodInfoResolver);
+
+      final ParseHandlersByName<Object> handlersByName =
           new ParseHandlersByName<>(contract, options, encoder, decoder, queryMapEncoder,
-              errorDecoder, synchronousMethodHandlerFactory);
+              errorDecoder, methodHandlerFactory);
       return new ReflectiveFeign<>(handlersByName, invocationHandlerFactory, () -> null);
     }
   }
