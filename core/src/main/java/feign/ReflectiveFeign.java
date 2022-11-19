@@ -26,14 +26,14 @@ import feign.InvocationHandlerFactory.MethodHandler;
 
 public class ReflectiveFeign<C> extends Feign {
 
-  private final ParseHandlersByName<C> targetToHandlersByName;
+  private final Dispatcher.Factory<C> dispatcherFactory;
   private final AsyncContextSupplier<C> defaultContextSupplier;
 
   ReflectiveFeign(
       Contract contract,
       MethodHandler.Factory<C> methodHandlerFactory,
       AsyncContextSupplier<C> defaultContextSupplier) {
-    this.targetToHandlersByName = new ParseHandlersByName<C>(contract, methodHandlerFactory);
+    this.dispatcherFactory = new Dispatcher.Factory<>(contract, methodHandlerFactory);
     this.defaultContextSupplier = defaultContextSupplier;
   }
 
@@ -49,17 +49,11 @@ public class ReflectiveFeign<C> extends Feign {
   public <T> T newInstance(Target<T> target, C requestContext) {
     TargetSpecificationVerifier.verify(target);
 
-    Map<Method, MethodHandler> methodToHandler =
-        targetToHandlersByName.apply(target, requestContext);
-    InvocationHandler handler = new FeignInvocationHandler(target, methodToHandler);
+    Dispatcher dispatcher = dispatcherFactory.create(target, requestContext);
+    InvocationHandler handler = new FeignInvocationHandler(target, dispatcher);
     T proxy = (T) Proxy.newProxyInstance(target.type().getClassLoader(),
         new Class<?>[] {target.type()}, handler);
-
-    for (MethodHandler methodHandler : methodToHandler.values()) {
-      if (methodHandler instanceof DefaultMethodHandler) {
-        ((DefaultMethodHandler) methodHandler).bindTo(proxy);
-      }
-    }
+    dispatcher.bindDefaultMethod(proxy);
 
     return proxy;
   }
@@ -67,11 +61,11 @@ public class ReflectiveFeign<C> extends Feign {
   static class FeignInvocationHandler implements InvocationHandler {
 
     private final Target target;
-    private final Map<Method, MethodHandler> dispatch;
+    private final Dispatcher dispatcher;
 
-    FeignInvocationHandler(Target target, Map<Method, MethodHandler> dispatch) {
+    FeignInvocationHandler(Target target, Dispatcher dispatcher) {
       this.target = checkNotNull(target, "target");
-      this.dispatch = checkNotNull(dispatch, "dispatch for %s", target);
+      this.dispatcher = checkNotNull(dispatcher, "dispatcher for %s", target);
     }
 
     @Override
@@ -90,7 +84,7 @@ public class ReflectiveFeign<C> extends Feign {
         return toString();
       }
 
-      return dispatch.get(method).invoke(args);
+      return dispatcher.dispatch(method, args);
     }
 
     @Override
@@ -113,52 +107,70 @@ public class ReflectiveFeign<C> extends Feign {
     }
   }
 
-  private static final class ParseHandlersByName<C> {
+  private static final class Dispatcher {
+    private final Map<Method, MethodHandler> methodHandlers;
 
-    private final Contract contract;
-    private final MethodHandler.Factory<C> factory;
-
-    ParseHandlersByName(
-        Contract contract,
-        MethodHandler.Factory<C> factory) {
-      this.contract = contract;
-      this.factory = factory;
+    Dispatcher(Map<Method, MethodHandler> methodHandlers) {
+      this.methodHandlers = checkNotNull(methodHandlers, "methodHandlers");
     }
 
-    public Map<Method, MethodHandler> apply(Target target, C requestContext) {
-      final Map<Method, MethodHandler> result = new LinkedHashMap<>();
-
-      final List<MethodMetadata> metadataList = contract.parseAndValidateMetadata(target.type());
-      for (MethodMetadata md : metadataList) {
-        final Method method = md.method();
-        if (method.getDeclaringClass() == Object.class) {
-          continue;
-        }
-
-        final MethodHandler handler = createMethodHandler(target, md, requestContext);
-        result.put(method, handler);
-      }
-
-      for (Method method : target.type().getMethods()) {
-        if (Util.isDefault(method)) {
-          final MethodHandler handler = new DefaultMethodHandler(method);
-          result.put(method, handler);
-        }
-      }
-
-      return result;
+    public Object dispatch(Method method, Object[] args) throws Throwable {
+      return methodHandlers.get(method).invoke(args);
     }
 
-    private MethodHandler createMethodHandler(final Target<?> target,
-                                              final MethodMetadata md,
-                                              final C requestContext) {
-      if (md.isIgnored()) {
-        return args -> {
-          throw new IllegalStateException(md.configKey() + " is not a method handled by feign");
-        };
+    public void bindDefaultMethod(Object proxy) {
+      for (MethodHandler methodHandler : methodHandlers.values()) {
+        if (methodHandler instanceof DefaultMethodHandler) {
+          ((DefaultMethodHandler) methodHandler).bindTo(proxy);
+        }
+      }
+    }
+
+    public static final class Factory<C> {
+
+      private final Contract contract;
+      private final MethodHandler.Factory<C> factory;
+
+      Factory(Contract contract, MethodHandler.Factory<C> factory) {
+        this.contract = contract;
+        this.factory = factory;
       }
 
-      return factory.create(target, md, requestContext);
+      public Dispatcher create(Target target, C requestContext) {
+        final Map<Method, MethodHandler> methodHandlers = new LinkedHashMap<>();
+
+        final List<MethodMetadata> metadataList = contract.parseAndValidateMetadata(target.type());
+        for (MethodMetadata md : metadataList) {
+          final Method method = md.method();
+          if (method.getDeclaringClass() == Object.class) {
+            continue;
+          }
+
+          final MethodHandler handler = createMethodHandler(target, md, requestContext);
+          methodHandlers.put(method, handler);
+        }
+
+        for (Method method : target.type().getMethods()) {
+          if (Util.isDefault(method)) {
+            final MethodHandler handler = new DefaultMethodHandler(method);
+            methodHandlers.put(method, handler);
+          }
+        }
+
+        return new Dispatcher(methodHandlers);
+      }
+
+      private MethodHandler createMethodHandler(final Target<?> target,
+                                                final MethodMetadata md,
+                                                final C requestContext) {
+        if (md.isIgnored()) {
+          return args -> {
+            throw new IllegalStateException(md.configKey() + " is not a method handled by feign");
+          };
+        }
+
+        return factory.create(target, md, requestContext);
+      }
     }
   }
 

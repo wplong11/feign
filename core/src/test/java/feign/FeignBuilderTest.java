@@ -278,7 +278,7 @@ public class FeignBuilderTest {
     final AtomicInteger callCount = new AtomicInteger();
     // noinspection rawtypes
     InvocationHandlerFactory factory = new InvocationHandlerFactory() {
-      private final InvocationHandlerFactory delegate = new Default();
+      private final InvocationHandlerFactory delegate = null; // new Default();
 
       @Override
       public InvocationHandler create(Target target, Map<Method, MethodHandler> dispatch) {
