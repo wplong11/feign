@@ -46,8 +46,6 @@ public abstract class BaseBuilder<B extends BaseBuilder<B>> {
   protected QueryMapEncoder queryMapEncoder = new FieldQueryMapEncoder();
   protected ErrorDecoder errorDecoder = new ErrorDecoder.Default();
   protected Options options = new Options();
-  protected InvocationHandlerFactory invocationHandlerFactory =
-      new InvocationHandlerFactory.Default();
   protected boolean dismiss404;
   protected ExceptionPropagationPolicy propagationPolicy = NONE;
   protected List<Capability> capabilities = new ArrayList<>();
@@ -202,15 +200,6 @@ public abstract class BaseBuilder<B extends BaseBuilder<B>> {
    */
   public B responseInterceptor(ResponseInterceptor responseInterceptor) {
     this.responseInterceptor = responseInterceptor;
-    return thisB;
-  }
-
-
-  /**
-   * Allows you to override how reflective dispatch works inside of Feign.
-   */
-  public B invocationHandlerFactory(InvocationHandlerFactory invocationHandlerFactory) {
-    this.invocationHandlerFactory = invocationHandlerFactory;
     return thisB;
   }
 

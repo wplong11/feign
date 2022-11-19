@@ -169,11 +169,6 @@ public abstract class Feign {
     }
 
     @Override
-    public Builder invocationHandlerFactory(InvocationHandlerFactory invocationHandlerFactory) {
-      return super.invocationHandlerFactory(invocationHandlerFactory);
-    }
-
-    @Override
     public Builder doNotCloseAfterDecode() {
       return super.doNotCloseAfterDecode();
     }

@@ -180,11 +180,6 @@ public final class AsyncFeign<C> {
       return super.requestInterceptors(requestInterceptors);
     }
 
-    @Override
-    public AsyncBuilder<C> invocationHandlerFactory(InvocationHandlerFactory invocationHandlerFactory) {
-      return super.invocationHandlerFactory(invocationHandlerFactory);
-    }
-
     public AsyncFeign<C> build() {
       super.enrich();
 
