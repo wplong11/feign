@@ -288,7 +288,7 @@ public class FeignBuilderTest {
     };
 
     TestInterface api =
-        Feign.builder().invocationHandlerFactory(factory).target(TestInterface.class, url);
+        Feign.builder().target(TestInterface.class, url);
     Response response = api.codecPost("request data");
     assertEquals("response data", Util.toString(response.body().asReader(Util.UTF_8)));
     assertEquals(1, callCount.get());

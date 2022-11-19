@@ -172,7 +172,7 @@ public class CoroutineFeign<C> {
           .options(options)
           .requestInterceptors(requestInterceptors)
           .responseInterceptor(responseInterceptor)
-          .invocationHandlerFactory(invocationHandlerFactory)
+//          .invocationHandlerFactory(invocationHandlerFactory)
           .defaultContextSupplier((AsyncContextSupplier<Object>) defaultContextSupplier)
           .methodInfoResolver(methodInfoResolver)
           .build();

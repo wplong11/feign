@@ -34,15 +34,15 @@ public class ReactorFeign extends ReactiveFeign {
 
     @Override
     public Feign build() {
-      super.invocationHandlerFactory(new ReactorInvocationHandlerFactory(scheduler));
+//      super.invocationHandlerFactory(new ReactorInvocationHandlerFactory(scheduler));
       return super.build();
     }
 
-    @Override
-    public Builder invocationHandlerFactory(InvocationHandlerFactory invocationHandlerFactory) {
-      throw new UnsupportedOperationException(
-          "Invocation Handler Factory overrides are not supported.");
-    }
+//    @Override
+//    public Builder invocationHandlerFactory(InvocationHandlerFactory invocationHandlerFactory) {
+//      throw new UnsupportedOperationException(
+//          "Invocation Handler Factory overrides are not supported.");
+//    }
 
     public Builder scheduleOn(Scheduler scheduler) {
       this.scheduler = scheduler;

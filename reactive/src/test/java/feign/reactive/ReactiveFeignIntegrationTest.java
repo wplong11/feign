@@ -143,8 +143,8 @@ public class ReactiveFeignIntegrationTest {
   public void invocationFactoryIsNotSupported() {
     this.thrown.expect(UnsupportedOperationException.class);
     ReactorFeign.builder()
-        .invocationHandlerFactory(
-            (target, dispatch) -> null)
+//        .invocationHandlerFactory(
+//            (target, dispatch) -> null)
         .target(TestReactiveXService.class, "http://localhost");
   }
 

@@ -121,10 +121,10 @@ public final class HystrixFeign {
       return target(new Target.HardCodedTarget<T>(apiType, url), fallbackFactory);
     }
 
-    @Override
-    public Feign.Builder invocationHandlerFactory(InvocationHandlerFactory invocationHandlerFactory) {
-      throw new UnsupportedOperationException();
-    }
+//    @Override
+//    public Feign.Builder invocationHandlerFactory(InvocationHandlerFactory invocationHandlerFactory) {
+//      throw new UnsupportedOperationException();
+//    }
 
     @Override
     public Builder contract(Contract contract) {
@@ -139,14 +139,14 @@ public final class HystrixFeign {
 
     /** Configures components needed for hystrix integration. */
     Feign build(final FallbackFactory<?> nullableFallbackFactory) {
-      super.invocationHandlerFactory(new InvocationHandlerFactory() {
-        @Override
-        public InvocationHandler create(Target target,
-                                        Map<Method, MethodHandler> dispatch) {
-          return new HystrixInvocationHandler(target, dispatch, setterFactory,
-              nullableFallbackFactory);
-        }
-      });
+//      super.invocationHandlerFactory(new InvocationHandlerFactory() {
+//        @Override
+//        public InvocationHandler create(Target target,
+//                                        Map<Method, MethodHandler> dispatch) {
+//          return new HystrixInvocationHandler(target, dispatch, setterFactory,
+//              nullableFallbackFactory);
+//        }
+//      });
       super.contract(new HystrixDelegatingContract(contract));
       return super.build();
     }
