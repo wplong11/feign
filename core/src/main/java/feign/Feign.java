@@ -202,7 +202,7 @@ public abstract class Feign {
               responseHandler, logger, logLevel, propagationPolicy,
               new RequestTemplateFactoryResolver(encoder, queryMapEncoder),
               options);
-      return new ReflectiveFeign<>(contract, methodHandlerFactory, invocationHandlerFactory, () -> null);
+      return new ReflectiveFeign<>(contract, methodHandlerFactory, () -> null);
     }
   }
 

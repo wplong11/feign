@@ -27,16 +27,13 @@ import feign.InvocationHandlerFactory.MethodHandler;
 public class ReflectiveFeign<C> extends Feign {
 
   private final ParseHandlersByName<C> targetToHandlersByName;
-  private final InvocationHandlerFactory factory;
   private final AsyncContextSupplier<C> defaultContextSupplier;
 
   ReflectiveFeign(
       Contract contract,
       MethodHandler.Factory<C> methodHandlerFactory,
-      InvocationHandlerFactory invocationHandlerFactory,
       AsyncContextSupplier<C> defaultContextSupplier) {
     this.targetToHandlersByName = new ParseHandlersByName<C>(contract, methodHandlerFactory);
-    this.factory = invocationHandlerFactory;
     this.defaultContextSupplier = defaultContextSupplier;
   }
 
@@ -54,7 +51,7 @@ public class ReflectiveFeign<C> extends Feign {
 
     Map<Method, MethodHandler> methodToHandler =
         targetToHandlersByName.apply(target, requestContext);
-    InvocationHandler handler = factory.create(target, methodToHandler);
+    InvocationHandler handler = new FeignInvocationHandler(target, methodToHandler);
     T proxy = (T) Proxy.newProxyInstance(target.type().getClassLoader(),
         new Class<?>[] {target.type()}, handler);
 

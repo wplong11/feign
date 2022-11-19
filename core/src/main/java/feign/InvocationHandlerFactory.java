@@ -40,12 +40,4 @@ public interface InvocationHandlerFactory {
                            C requestContext);
     }
   }
-
-  static final class Default implements InvocationHandlerFactory {
-
-    @Override
-    public InvocationHandler create(Target target, Map<Method, MethodHandler> dispatch) {
-      return new ReflectiveFeign.FeignInvocationHandler(target, dispatch);
-    }
-  }
 }
